@@ -6,6 +6,7 @@ import java.util.function.Consumer
 import org.eclipse.emf.ecore.util.EcoreUtil
 import tools.vitruv.dsls.common.elements.MetaclassReference
 import tools.vitruv.dsls.reactions.builder.FluentRoutineBuilder.InputBuilder
+import tools.vitruv.dsls.reactions.language.toplevelelements.MaturityLevelEnum
 import tools.vitruv.dsls.reactions.language.toplevelelements.Reaction
 import tools.vitruv.dsls.reactions.language.toplevelelements.Routine
 import tools.vitruv.dsls.reactions.language.toplevelelements.TopLevelElementsFactory
@@ -49,6 +50,10 @@ class FluentReactionsLanguageBuilder {
 
 	def reaction(String name) {
 		new FluentReactionBuilder(name, context).start()
+	}
+
+	def reaction(String name, MaturityLevelEnum level) {
+		new FluentReactionBuilder(name, context).start().whereMaturity(level)
 	}
 
 	def from(Reaction reaction) {

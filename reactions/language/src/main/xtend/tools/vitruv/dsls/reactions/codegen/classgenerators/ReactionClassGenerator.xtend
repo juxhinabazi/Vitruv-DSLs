@@ -29,6 +29,10 @@ class ReactionClassGenerator extends ClassGenerator {
 	static val MATCH_CHANGE_METHOD_NAME = "isCurrentChangeMatchingTrigger"
 	static val USER_DEFINED_PRECONDITION_METHOD_NAME = "isUserDefinedPreconditionFulfilled"
 
+    static val GET_REQUIRED_MATURITY_METHOD_NAME = "getRequiredMaturity"
+    static val HAS_MATURITY_CONSTRAINT_METHOD_NAME = "hasMaturityConstraint"
+    static val IS_MATURITY_ALLOWED_METHOD_NAME = "isMaturityAllowed"
+
 	final Reaction reaction
 	final ChangeTypeRepresentation changeType
 	final String reactionClassQualifiedName
@@ -68,6 +72,7 @@ class ReactionClassGenerator extends ClassGenerator {
 			members += reaction.generateConstructor()
 			members += routineCallClassGenerator.generateBody()
 			members += generateMethodExecuteReactionAndDependentMethods()
+			members += generateMaturityMethods()
 		]
 	}
 
@@ -170,4 +175,52 @@ class ReactionClassGenerator extends ClassGenerator {
 		return reaction.trigger?.precondition !== null
 	}
 
+	private def Iterable<JvmOperation> generateMaturityMethods() {
+		val getRequiredMaturityMethod = generateGetRequiredMaturityMethod()
+		val hasMaturityConstraintMethod = generateHasMaturityConstraintMethod()
+		val isMaturityAllowedMethod = generateIsMaturityAllowedMethod()
+
+		return #[getRequiredMaturityMethod, hasMaturityConstraintMethod, isMaturityAllowedMethod].filterNull
+	}
+
+    private def JvmOperation generateGetRequiredMaturityMethod() {
+        reaction.toMethod(GET_REQUIRED_MATURITY_METHOD_NAME, typeRef(String)) [
+        visibility = JvmVisibility.PUBLIC
+			body = '''
+				«IF reaction.maturity === null»
+					return null;
+				«ELSE»
+					return "«reaction.maturity.literal»";
+				«ENDIF»
+			'''
+        ]
+    }
+
+    private def JvmOperation generateHasMaturityConstraintMethod() {
+        reaction.toMethod(HAS_MATURITY_CONSTRAINT_METHOD_NAME, typeRef(Boolean.TYPE)) [
+            visibility = JvmVisibility.PUBLIC
+            body = '''
+                return «GET_REQUIRED_MATURITY_METHOD_NAME»() != null;
+            '''
+        ]
+    }
+
+    private def JvmOperation generateIsMaturityAllowedMethod() {
+        reaction.toMethod(IS_MATURITY_ALLOWED_METHOD_NAME, typeRef(Boolean.TYPE)) [
+			visibility = JvmVisibility.PUBLIC
+			val levelParam = generateParameter(new AccessibleElement("level", Object))
+			parameters += levelParam
+			body = '''
+				final String required = «GET_REQUIRED_MATURITY_METHOD_NAME»();
+				if (required == null) {
+				return true;
+				}
+				if («levelParam.name» == null) {
+				return false;
+				}
+				final String given = String.valueOf(«levelParam.name»);
+				return required.equals(given);
+			'''
+		]
+    }
 }

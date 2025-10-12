@@ -16,6 +16,7 @@ import tools.vitruv.dsls.reactions.builder.FluentRoutineBuilder.RoutineCallParam
 import tools.vitruv.dsls.reactions.builder.FluentRoutineBuilder.RoutineStartBuilder
 import tools.vitruv.dsls.reactions.language.ElementChangeType
 import tools.vitruv.dsls.reactions.language.ModelElementChange
+import tools.vitruv.dsls.reactions.language.toplevelelements.MaturityLevelEnum
 import tools.vitruv.dsls.reactions.language.toplevelelements.Reaction
 import tools.vitruv.dsls.reactions.language.toplevelelements.TopLevelElementsFactory
 
@@ -56,6 +57,15 @@ class FluentReactionBuilder extends FluentReactionsSegmentChildBuilder {
 	static class OverrideOrTriggerBuilder extends TriggerBuilder {
 		private new(FluentReactionBuilder builder) {
 			super(builder)
+		}
+
+		def OverrideOrTriggerBuilder whereMaturity(MaturityLevelEnum level) {
+			reaction.maturity = level
+			this
+		}
+
+		def OverrideOrTriggerBuilder maturity(MaturityLevelEnum level) {
+			whereMaturity(level)
 		}
 
 		def overrideSegment(FluentReactionsSegmentBuilder segmentBuilder) {
