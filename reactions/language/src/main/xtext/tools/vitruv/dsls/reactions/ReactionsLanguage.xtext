@@ -33,6 +33,7 @@ ReactionsImport returns toplevelelements::ReactionsImport:
 Reaction returns toplevelelements::Reaction:
 	(documentation=ML_COMMENT)?
 	'reaction' (overriddenReactionsSegment=[toplevelelements::ReactionsSegment] '::')? name=ValidID '{'
+	('where' 'maturity' maturity=MaturityLevelEnum)?
 	trigger=Trigger
 	callRoutine=RoutineCall
 	'}';
@@ -194,4 +195,6 @@ MetaclassEAttributeReference returns common::MetaclassEAttributeReference:
 
 MetaclassEReferenceReference returns common::MetaclassEReferenceReference:
 	MetaclassReference '[' feature=[ecore::EReference|ValidID] ']';
-	
+
+enum MaturityLevelEnum returns toplevelelements::MaturityLevelEnum:
+    DRAFT | REVIEWED | FINAL;
