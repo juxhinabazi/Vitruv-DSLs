@@ -103,6 +103,7 @@ class ReactionClassGenerator extends ClassGenerator {
 				«facadeClassName» «ROUTINES_FACADE_VARIABLE» = («facadeClassName»)«ROUTINES_FACADE_VARIABLE»Untyped;
 				«generateMatchChangeMethodCallCode(matchChangeMethod, changeParameter.name)»
 				«changeType.generatePropertiesAssignmentCode»
+				«generateSetChangeMaturityCode(changeParameter.name)»
 				«generateUserDefinedPreconditionMethodCall(userDefinedPreconditionMethod)»
 				if (getLogger().isTraceEnabled()) {
 					getLogger().trace("Passed complete precondition check of Reaction " + this.getClass().getName());
@@ -140,6 +141,16 @@ class ReactionClassGenerator extends ClassGenerator {
 			parameters += changeParameter
 			body = changeType.generateCheckMethodBody(changeParameter.name)
 		]
+	}
+
+	private def StringConcatenationClient generateSetChangeMaturityCode(String changeParamName) {
+		'''
+			// Propagate reaction maturity to the EChange, without overwriting an already-set value.
+			final tools.vitruv.change.atomic.MaturityLevelEnum requiredMaturity = «GET_REQUIRED_MATURITY_METHOD_NAME»();
+			if («changeParamName» != null && requiredMaturity != null && «changeParamName».getMaturity() == null) {
+				«changeParamName».setMaturity(requiredMaturity);
+			}
+		'''
 	}
 
 	private def StringConcatenationClient generateUserDefinedPreconditionMethodCall(
@@ -183,18 +194,19 @@ class ReactionClassGenerator extends ClassGenerator {
 		return #[getRequiredMaturityMethod, hasMaturityConstraintMethod, isMaturityAllowedMethod].filterNull
 	}
 
-    private def JvmOperation generateGetRequiredMaturityMethod() {
-        reaction.toMethod(GET_REQUIRED_MATURITY_METHOD_NAME, typeRef(String)) [
-        visibility = JvmVisibility.PUBLIC
+	private def JvmOperation generateGetRequiredMaturityMethod() {
+		reaction.toMethod(GET_REQUIRED_MATURITY_METHOD_NAME, typeRef("tools.vitruv.change.atomic.MaturityLevelEnum")) [
+			visibility = JvmVisibility.PUBLIC
 			body = '''
 				«IF reaction.maturity === null»
 					return null;
 				«ELSE»
-					return "«reaction.maturity.literal»";
+					// Inline the constant at generation time; assumes enum literals match by name
+					return tools.vitruv.change.atomic.MaturityLevelEnum.«reaction.maturity.getName()»;
 				«ENDIF»
 			'''
-        ]
-    }
+   		]
+	}
 
     private def JvmOperation generateHasMaturityConstraintMethod() {
         reaction.toMethod(HAS_MATURITY_CONSTRAINT_METHOD_NAME, typeRef(Boolean.TYPE)) [
@@ -203,24 +215,23 @@ class ReactionClassGenerator extends ClassGenerator {
                 return «GET_REQUIRED_MATURITY_METHOD_NAME»() != null;
             '''
         ]
-    }
+	}
 
-    private def JvmOperation generateIsMaturityAllowedMethod() {
-        reaction.toMethod(IS_MATURITY_ALLOWED_METHOD_NAME, typeRef(Boolean.TYPE)) [
+	private def JvmOperation generateIsMaturityAllowedMethod() {
+		reaction.toMethod(IS_MATURITY_ALLOWED_METHOD_NAME, typeRef(Boolean.TYPE)) [
 			visibility = JvmVisibility.PUBLIC
-			val levelParam = generateParameter(new AccessibleElement("level", Object))
+			val levelParam = generateParameter(new AccessibleElement("level", "tools.vitruv.change.atomic.MaturityLevelEnum"))
 			parameters += levelParam
 			body = '''
-				final String required = «GET_REQUIRED_MATURITY_METHOD_NAME»();
+				final tools.vitruv.change.atomic.MaturityLevelEnum required = «GET_REQUIRED_MATURITY_METHOD_NAME»();
 				if (required == null) {
-				return true;
+					return true;
 				}
 				if («levelParam.name» == null) {
-				return false;
+					return false;
 				}
-				final String given = String.valueOf(«levelParam.name»);
-				return required.equals(given);
+				return required == «levelParam.name»;
 			'''
 		]
-    }
+	}
 }
